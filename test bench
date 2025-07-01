@@ -1,25 +1,40 @@
 module tb;
-reg [15:0]data_in;
-reg clk,start;
-wire done;
+  reg [15:0] data_in;
+  reg clk, start;
+  wire done, eqz;
+  wire [15:0] X, Y;
+  wire LdA, LdB, LdP, clrP, decB;
 
-MUL_datapath DP(eqz,LdA,LdB,LdP,clrP,decB,data_in,clk);
-controller CON(LdA,LdB,clrP,decB,done,clk,eqz,start);
+  MUL_datapath DP (
+    .eqz(eqz), .LdA(LdA), .LdB(LdB), .LdP(LdP),
+    .clrP(clrP), .decB(decB), .data_in(data_in),
+    .clk(clk), .X_out(X), .Y_out(Y)
+  );
 
-initial 
-begin
-clk=1'b0;
-#3 start=1'b1;
-#500 $finish;
-end
-always #5 clk=~clk;
+  controller CON (
+    .LdA(LdA), .LdB(LdB), .LdP(LdP),
+    .clrP(clrP), .decB(decB), .done(done),
+    .clk(clk), .eqz(eqz), .start(start)
+  );
 
-initial begin
-#17 data_in=17;
-#10 data_in=5;
-end
+  initial begin
+    clk = 0;
+    forever #5 clk = ~clk;  // 10ns clock period
+  end
 
-initial begin
-$monitor($time,"%d %b ",DP.Y,done);
-end
+  initial begin
+    start = 0;
+    data_in = 0;
+
+    #12 data_in = 16'd4;  // Multiplicand
+    #10 start = 1;        // Trigger start
+    #10 data_in = 16'd3;  // Multiplier
+
+    #200 $finish;
+  end
+
+  initial begin
+    $monitor($time, " X=%d Y=%d done=%b", X, Y, done);
+  end
+
 endmodule
